@@ -1,0 +1,26 @@
+{
+    "name": "mucts/money",
+    "description": "Numeric amount case conversion",
+    "type": "library",
+    "require": {
+        "php": "^7.2",
+        "ext-bcmath": "*",
+        "ext-mbstring": "^7.2",
+        "moneyphp/money": "^3.3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.1"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "herry",
+            "email": "yuandeng@aliyun.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "MuCTS\\Money\\": "src/"
+        }
+    }
+}

@@ -3,6 +3,15 @@
 
 ## Installation
 
+### Server Requirements
+>you will need to make sure your server meets the following requirements:
+
+- `php ^7.4`
+- `GMP PHP Extension`
+- `BCMath PHP Extension`
+- `MBString PHP Extension`
+- `mucts/helpers >=0.1.7`
+
 ~~~shell
 composer require mucts/money
 ~~~

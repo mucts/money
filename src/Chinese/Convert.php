@@ -53,6 +53,13 @@ class Convert
         48 => '极'
     ];
 
+    private const SYMBOL = [
+        '-' => '负',
+        '+' => '',
+        '' => '整'
+    ];
+
+
     /**
      * 金额转换成中文
      *
@@ -62,7 +69,7 @@ class Convert
      */
     public static function toCn($amount, string $unit = '人民币'): string
     {
-        if (!preg_match('/^([1-9][0-9]{0,2}([,]?[0-9]{3})*|0)(\.[0-9]{0,4})?$/', $amount)) {
+        if (!preg_match('/^[+\-]?([1-9][0-9]{0,2}([,]?[0-9]{3})*|0)(\.[0-9]{0,4})?$/', $amount)) {
             throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $amount));
         }
         list($integer, $decimals) = explode('.', strval($amount) . '.', 2);
@@ -74,6 +81,10 @@ class Convert
         $i = $len;
         while ($i) {
             $num = $integer[$len - $i--];
+            if (in_array($num, array_keys(self::SYMBOL), true)) {
+                $integerStr .= self::SYMBOL[$num];
+                continue;
+            }
             if ($num > 0) {
                 $integerStr .= self::DIGITAL[$num];
                 if (isset(self::UNIT[$i])) {
@@ -108,11 +119,11 @@ class Convert
         }
         $integerStr = $integerStr != '' ? $integerStr : self::DIGITAL[0];
         $integerStr = strpos($integerStr, self::UNIT[0]) ? $integerStr : $integerStr . self::UNIT[0];
-        return $unit . $integerStr . ($decimalStr != '' ? $decimalStr : '整');
+        return $unit . $integerStr . ($decimalStr != '' ? $decimalStr : self::SYMBOL['']);
     }
 
     public static function toDigit(string $amount): float
     {
-
+        
     }
 }

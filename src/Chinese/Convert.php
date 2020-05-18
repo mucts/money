@@ -145,7 +145,7 @@ class Convert
                 if (is_null($un)) {
                     throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $cnAmount));
                 }
-                if ($un > 0) {
+                if ($un >= 0) {
                     $amount = gmp_add($amount, gmp_mul($key, $un < 0 ? 10 ** $un : gmp_pow('10', $un)));
                 } else {
                     $decimal += $key * (10 ** $un);

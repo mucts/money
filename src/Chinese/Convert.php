@@ -12,7 +12,6 @@
 
 namespace MuCTS\Money\Chinese;
 
-
 use InvalidArgumentException;
 
 class Convert
@@ -64,11 +63,13 @@ class Convert
      * 金额转换成中文
      *
      * @param string|int|float $amount
-     * @param string $unit
+     * @param string $symbol
+     * @param string $cnSymbol
      * @return string
      */
-    public static function toCn($amount, string $unit = '人民币'): string
+    public static function toCn($amount, string $symbol = '￥', string $cnSymbol = '人民币'): string
     {
+        $amount = ltrim($amount, $symbol);
         if (!preg_match('/^[+\-]?([1-9][0-9]{0,2}([,]?[0-9]{3})*|0)(\.[0-9]{0,4})?$/', $amount)) {
             throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $amount));
         }
@@ -119,11 +120,50 @@ class Convert
         }
         $integerStr = $integerStr != '' ? $integerStr : self::DIGITAL[0];
         $integerStr = strpos($integerStr, self::UNIT[0]) ? $integerStr : $integerStr . self::UNIT[0];
-        return $unit . $integerStr . ($decimalStr != '' ? $decimalStr : self::SYMBOL['']);
+        return $cnSymbol . $integerStr . ($decimalStr != '' ? $decimalStr : self::SYMBOL['']);
     }
 
-    public static function toDigit(string $amount): float
+    /**
+     * 中文金额转阿拉伯数字金额
+     *
+     * @param string $cnAmount
+     * @param string $unit
+     * @param string $cnUnit
+     * @return string
+     */
+    public static function toDigit(string $cnAmount, $unit = '￥', $cnUnit = '人民币'): string
     {
-        
+        $amount = preg_replace("/^{$cnUnit}/", '', $cnAmount);
+        $amount = preg_replace('/' . self::UNIT[0] . self::SYMBOL[''] . '$/', self::UNIT[0], $amount);
+        $amounts = mb_str_split($amount);
+        $amount = $maxUnit = 0;
+        $symbol = 1;
+        $decimal = 0;
+        $un = null;
+        while ($chr = array_pop($amounts)) {
+            if (($key = array_search($chr, self::DIGITAL)) !== false) {
+                if (is_null($un)) {
+                    throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $cnAmount));
+                }
+                if ($un > 0) {
+                    $amount = gmp_add($amount, gmp_mul($key, $un < 0 ? 10 ** $un : gmp_pow('10', $un)));
+                } else {
+                    $decimal += $key * (10 ** $un);
+                }
+                $un = null;
+            } elseif (($key = array_search($chr, self::UNIT)) !== false) {
+                if (!is_null($un) && $un != 0) {
+                    throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $cnAmount));
+                }
+                $un = $key;
+                $maxUnit = max($maxUnit, $un);
+                $un = $maxUnit > $un ? $maxUnit + $un : $un;
+            } elseif ($chr == self::SYMBOL['-']) {
+                $symbol = -1;
+            } else {
+                throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $cnAmount));
+            }
+        }
+        return $unit . gmp_strval(gmp_mul($amount, $symbol)) . ltrim(strval($decimal), '0');
     }
 }

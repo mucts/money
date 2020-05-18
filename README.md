@@ -6,7 +6,7 @@
 ### Server Requirements
 >you will need to make sure your server meets the following requirements:
 
-- `php ^7.4`
+- `php ^7.2`
 - `GMP PHP Extension`
 - `BCMath PHP Extension`
 - `MBString PHP Extension`

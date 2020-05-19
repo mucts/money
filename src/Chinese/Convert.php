@@ -12,7 +12,7 @@
 
 namespace MuCTS\Money\Chinese;
 
-use InvalidArgumentException;
+use MuCTS\Money\Exceptions\InvalidArgumentException;
 
 class Convert
 {

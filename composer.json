@@ -7,7 +7,7 @@
         "ext-bcmath": "^7.2",
         "ext-gmp": "^7.2",
         "ext-mbstring": "^7.2",
-        "mucts/helpers": ">=0.1.7"
+        "mucts/helpers": "^1.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^8.0|^9.0"

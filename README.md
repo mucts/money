@@ -1,5 +1,5 @@
 # Money
-> Numeric amount case conversion
+> Numeric amount case conversion.
 
 [![Build Status](https://scrutinizer-ci.com/g/mucts/money/badges/build.png)](https://scrutinizer-ci.com/g/mucts/money)
 [![Code Intelligence Status](https://scrutinizer-ci.com/g/mucts/money/badges/code-intelligence.svg)](https://scrutinizer-ci.com/g/mucts/money)

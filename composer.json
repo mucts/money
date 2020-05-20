@@ -4,7 +4,7 @@
     "type": "library",
     "require": {
         "php": ">=7.2",
-        "ext-bcmath": "^*",
+        "ext-bcmath": "*",
         "ext-gmp": "*",
         "ext-mbstring": "*",
         "mucts/helpers": "^1.0"

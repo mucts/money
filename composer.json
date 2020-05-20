@@ -3,10 +3,10 @@
     "description": "Numeric amount case conversion",
     "type": "library",
     "require": {
-        "php": "^7.2",
-        "ext-bcmath": "^7.2",
-        "ext-gmp": "^7.2",
-        "ext-mbstring": "^7.2",
+        "php": ">=7.2",
+        "ext-bcmath": "^*",
+        "ext-gmp": "*",
+        "ext-mbstring": "*",
         "mucts/helpers": "^1.0"
     },
     "require-dev": {

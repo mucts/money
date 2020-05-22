@@ -104,7 +104,7 @@ final class Convert
                 $decimalStr .= self::DIGITAL[$num] . self::UNIT[-1 - $i];
             }
         }
-        return $decimalStr != '' ? $decimalStr : $default;
+        return empty($decimalStr) ? $default : $decimalStr;
     }
 
 
@@ -136,51 +136,73 @@ final class Convert
      */
     public static function toDigit(string $cnAmount, string $prefix = '￥', string $cnPrefix = '人民币'): string
     {
-        $amount = preg_replace(sprintf("/^%s/", $cnPrefix), '', $cnAmount);
-        $amounts = mb_str_split($amount);
-        $maxUnit = 0;
-        $isPlus = 1;
-        $digits = $units = [];
-        $isDigit = false;
-        $amounts[0] == self::SYMBOL['-'] && array_unshift($amounts) && $isPlus = -1;
+        $cnAmount = preg_replace(sprintf("/^%s/", $cnPrefix), '', $cnAmount);
+        if (empty($cnAmount)) {
+            throw new InvalidArgumentException('this\'s not a valid chinese number text');
+        }
+        $amounts = mb_str_split($cnAmount);
+        $isMinus = self::isMinus($amounts);
         Arr::last($amounts) == self::SYMBOL[''] && array_pop($amounts);
+        list($digits, $units) = self::cnDecode($amounts);
+        if (!empty($amounts) || count($digits) != count($units)) {
+            throw new InvalidArgumentException('this\'s not a valid chinese number text');
+        }
+        return $prefix . self::calculate($digits, $units, $isMinus);
+    }
 
-        while ($chr = array_unshift($amounts)) {
+    /**
+     * 中文金额解析
+     *
+     * @param array $amounts
+     * @return array[]
+     */
+    private static function cnDecode(array &$amounts)
+    {
+        $maxUnit = $unit = 0;
+        $digits = $units = [];
+        while ($chr = array_pop($amounts)) {
             if (($key = array_search($chr, self::DIGITAL)) !== false) {
                 array_push($digits, $key);
-                $isDigit = true;
-            } elseif (($un = array_search($chr, self::UNIT)) !== false) {
-                $maxUnit = max($maxUnit, $un);
-                $isDigit && array_push($units, $maxUnit > $un ? $maxUnit + $un : $un);
-                $isDigit = false;
+                array_push($units, $unit);
+            } elseif (($unit = array_search($chr, self::UNIT)) !== false) {
+                $maxUnit = max($maxUnit, $unit);
+                $unit = $maxUnit > $unit ? $maxUnit + $unit : $unit;
             } else {
-                throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $cnAmount));
+                throw new InvalidArgumentException('This\'s not a valid chinese number text');
             }
         }
-        if (!empty($amounts) || count($digits) != count($units)) {
-            throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $cnAmount));
-        }
-        return $prefix . self::calculate($digits, $units, $isPlus);
+        return [$digits, $units];
+    }
+
+    /**
+     * 判断是否是负数
+     *
+     * @param array $amounts
+     * @return bool
+     */
+    private static function isMinus(array &$amounts): bool
+    {
+        return !empty($amounts) && $amounts[0] == self::SYMBOL['-'] && array_shift($amounts);
     }
 
     /**
      * 转换成数字计算
      *
-     * @param $digits
-     * @param $units
-     * @param int $isPlus
+     * @param array $digits
+     * @param array $units
+     * @param bool $isMinus
      * @return string
      */
-    private static function calculate($digits, $units, $isPlus = 1): string
+    private static function calculate(array $digits, array $units, bool $isMinus = false): string
     {
         $integer = $decimal = 0;
-        while (($digit = array_pop($digits)) && ($unit = array_pop($units))) {
-            if ($units >= 0) {
+        while (is_int($digit = array_pop($digits)) && is_int($unit = array_pop($units))) {
+            if ($unit >= 0) {
                 $integer = gmp_add($integer, gmp_mul($digit, gmp_pow(10, $unit)));
             } else {
                 $decimal += $digit * (10 ** $unit);
             }
         }
-        return gmp_strval(gmp_mul($integer, $isPlus)) . ltrim(strval($decimal), '0');
+        return gmp_strval(gmp_mul($integer, $isMinus ? -1 : 1)) . ltrim(strval($decimal), '0');
     }
 }

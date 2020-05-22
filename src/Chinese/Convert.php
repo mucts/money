@@ -68,16 +68,14 @@ final class Convert
      */
     private static function integerToCn(string $integer): string
     {
-        if (($i = $len = strlen($integer)) > 48) {
-            throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $integer));
-        }
+        $index = $len = strlen($integer);
         $integerStr = '';
         $unit = 0;
-        while ($i) {
-            $num = $integer[$len - $i--];
-            if ($num > 0 || Arr::exists(self::UNIT, $i) && $unit <= $i) {
-                $integerStr .= $num > 0 || $i == 0 ? self::DIGITAL[$num] : '';
-                $unit = Arr::exists(self::UNIT, $i) ? $i : $i % 4;
+        while ($index) {
+            $num = $integer[$len - $index--];
+            if ($num > 0 || Arr::exists(self::UNIT, $index) && $unit <= $index) {
+                $integerStr .= $num > 0 || $index == 0 ? self::DIGITAL[$num] : '';
+                $unit = Arr::exists(self::UNIT, $index) ? $index : $index % 4;
                 $integerStr .= self::UNIT[$unit];
             }
         }
@@ -130,8 +128,8 @@ final class Convert
     public static function toCn($amount, $prefix = '￥', string $cnPrefix = '人民币'): string
     {
         $amount = strval($amount);
-        if (!preg_match(sprintf('/^(%s)?[+\-]?([1-9]\d{0,2}([,]?\d{3})*|0)(\.\d{0,4})?$/', $prefix), $amount)) {
-            throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $amount));
+        if (!preg_match(sprintf('/^(%s)?[+\-]?([1-9]\d{0,2}([,]?\d{3}){0,15}|0)(\.\d{0,4})?$/', $prefix), $amount)) {
+            throw new InvalidArgumentException(sprintf('%s is not a valid amount number.', $amount));
         }
         $amount = preg_replace(sprintf('/^%s/', $prefix), '', $amount);
         $cnPrefix = self::getCnPrefix($amount, $cnPrefix);

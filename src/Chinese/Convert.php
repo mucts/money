@@ -73,8 +73,8 @@ final class Convert
         $unit = 0;
         while ($index) {
             $num = $integer[$len - $index--];
-            if ($num > 0 || Arr::exists(self::UNIT, $index) && $unit <= $index) {
-                $integerStr .= $num > 0 || $index == 0 ? self::DIGITAL[$num] : '';
+            if ($num > 0 || Arr::exists(self::UNIT, $index) && $unit <= $index || $index == 0) {
+                $integerStr .= $num > 0 || empty($integerStr) ? self::DIGITAL[$num] : '';
                 $unit = Arr::exists(self::UNIT, $index) ? $index : $index % 4;
                 $integerStr .= self::UNIT[$unit];
             }

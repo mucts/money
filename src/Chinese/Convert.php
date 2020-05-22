@@ -63,43 +63,36 @@ final class Convert
     /**
      * 整数部分转换
      *
-     * @param string $integer
+     * @param int[] $integers
      * @return string
      */
-    private static function integerToCn(string $integer): string
+    private static function integerToCn(array $integers): string
     {
-        $index = $len = strlen($integer);
-        $integerStr = '';
-        $unit = 0;
-        while ($index) {
-            $num = $integer[$len - $index--];
-            if ($num > 0 || Arr::exists(self::UNIT, $index) && $unit <= $index || $index == 0) {
-                $integerStr .= $num > 0 || empty($integerStr) ? self::DIGITAL[$num] : '';
-                $unit = Arr::exists(self::UNIT, $index) ? $index : $index % 4;
-                $integerStr .= self::UNIT[$unit];
-            }
-        }
-        return $integerStr;
+        $len = count($integers) - 1;
+        return collect($integers)->filter(function ($int, $index) use ($len) {
+            return $int > 0 || $index == $len || self::UNIT[$index];
+        })->map(function ($int, $index) use ($len) {
+            $index = $len - $index;
+            return ($int > 0 || $len == 0 ? self::DIGITAL[$int] : '') . (Arr::exists(self::UNIT, $index)
+                    ? Arr::get(self::UNIT, $index) : Arr::get(self::UNIT, $index % 4));
+        })->implode('');
     }
 
     /**
      * 小数部分转换
      *
-     * @param string|null $decimals
+     * @param int[] $decimals
      * @param string|null $default
      * @return string|null
      */
-    private static function decimalToCn(?string $decimals, ?string $default = null): ?string
+    private static function decimalToCn(array $decimals, ?string $default = null): ?string
     {
-        $decimalStr = '';
-        $len = is_string($decimals) ? strlen($decimals) : 0;
-        for ($i = 0; $i < $len; $i++) {
-            $num = $decimals[$i];
-            if ($num > 0) {
-                $decimalStr .= self::DIGITAL[$num] . self::UNIT[-1 - $i];
-            }
-        }
-        return empty($decimalStr) ? $default : $decimalStr;
+        $result = collect($decimals)->filter(function ($int) {
+            return $int > 0;
+        })->map(function ($int, $index) {
+            return self::DIGITAL[$int] . self::UNIT[-1 - $index];
+        })->implode('');
+        return empty($result) ? $default : $result;
     }
 
     /**
@@ -133,8 +126,8 @@ final class Convert
         }
         $amount = preg_replace(sprintf('/^%s/', $prefix), '', $amount);
         $cnPrefix = self::getCnPrefix($amount, $cnPrefix);
-        list($integer, $decimals) = explode('.', $amount . '.', 2);
-        return $cnPrefix . self::integerToCn($integer) . strval(self::decimalToCn($decimals, self::SYMBOL['']));
+        list($integer, $decimals) = explode('.', $amount . '.0', 2);
+        return $cnPrefix . self::integerToCn(str_split($integer)) . strval(self::decimalToCn(str_split($decimals), self::SYMBOL['']));
     }
 
     /**

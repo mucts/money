@@ -59,6 +59,54 @@ final class Convert
         '' => '整'
     ];
 
+    /**
+     * 整数部分转换
+     *
+     * @param string $integer
+     * @return string
+     */
+    private static function integerToCn(string $integer): string
+    {
+        if (($i = $len = strlen($integer)) > 48) {
+            throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $integer));
+        }
+        $integerStr = '';
+        $unit = 0;
+        while ($i) {
+            $num = $integer[$len - $i--];
+            if (in_array($num, array_keys(self::SYMBOL), true)) {
+                $integerStr .= self::SYMBOL[$num];
+                continue;
+            }
+            if ($num > 0 || Arr::exists(self::UNIT, $i) && $unit <= $i) {
+                $integerStr .= $num > 0 || $i == 0 ? self::DIGITAL[$num] : '';
+                $unit = Arr::exists(self::UNIT, $i) ? $i : $i % 4;
+                $integerStr .= self::UNIT[$unit];
+            }
+        }
+        return $integerStr;
+    }
+
+    /**
+     * 小数部分转换
+     *
+     * @param string $decimals
+     * @param string|null $default
+     * @return string|null
+     */
+    private static function decimalToCn(string $decimals, ?string $default = null): ?string
+    {
+        $decimalStr = '';
+        $len = strlen($decimals);
+        for ($i = 0; $i < $len; $i++) {
+            $num = $decimals[$i];
+            if ($num > 0) {
+                $decimalStr .= self::DIGITAL[$num] . self::UNIT[-1 - $i];
+            }
+        }
+        return $decimalStr != '' ? $decimalStr : $default;
+    }
+
 
     /**
      * 金额转换成中文
@@ -75,34 +123,7 @@ final class Convert
         }
         $amount = strtr($amount, [',' => '', $prefix => '']);
         list($integer, $decimals) = explode('.', strval($amount) . '.', 2);
-        if (($len = strlen($integer)) > 48) {
-            throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $amount));
-        }
-        $integerStr = '';
-        $i = $len;
-        $unit = 0;
-        while ($i) {
-            $num = $integer[$len - $i--];
-            if (in_array($num, array_keys(self::SYMBOL), true)) {
-                $integerStr .= self::SYMBOL[$num];
-                continue;
-            }
-            if ($num > 0 || Arr::exists(self::UNIT, $i) && $unit <= $i) {
-                $integerStr .= $num > 0 || $i == 0 ? self::DIGITAL[$num] : '';
-                $unit = Arr::exists(self::UNIT, $i) ? $i : $i % 4;
-                $integerStr .= self::UNIT[$unit];
-            }
-        }
-        $decimalStr = '';
-        $len = strlen($decimals);
-        for ($i = 0; $i < $len; $i++) {
-            $num = $decimals[$i];
-            if ($num > 0) {
-                $decimalStr .= self::DIGITAL[$num] . self::UNIT[-1 - $i];
-            }
-        }
-        $integerStr = strpos($integerStr, self::UNIT[0]) ? $integerStr : $integerStr . self::UNIT[0];
-        return $cnPrefix . $integerStr . ($decimalStr != '' ? $decimalStr : self::SYMBOL['']);
+        return $cnPrefix . self::integerToCn($integer) . strval(self::decimalToCn($decimals, self::SYMBOL['']));
     }
 
     /**
@@ -115,38 +136,51 @@ final class Convert
      */
     public static function toDigit(string $cnAmount, string $prefix = '￥', string $cnPrefix = '人民币'): string
     {
-        $amount = preg_replace("/^{$cnPrefix}/", '', $cnAmount);
-        $amount = preg_replace('/' . self::UNIT[0] . self::SYMBOL[''] . '$/', self::UNIT[0], $amount);
+        $amount = preg_replace(sprintf("/^%s/", $cnPrefix), '', $cnAmount);
         $amounts = mb_str_split($amount);
-        $amount = $maxUnit = 0;
-        // 断定是否是正数，默认是
-        $plus = 1;
-        $decimal = 0;
-        $un = null;
-        while ($chr = array_pop($amounts)) {
+        $maxUnit = 0;
+        $isPlus = 1;
+        $digits = $units = [];
+        $isDigit = false;
+        $amounts[0] == self::SYMBOL['-'] && array_unshift($amounts) && $isPlus = -1;
+        Arr::last($amounts) == self::SYMBOL[''] && array_pop($amounts);
+
+        while ($chr = array_unshift($amounts)) {
             if (($key = array_search($chr, self::DIGITAL)) !== false) {
-                if (is_null($un)) {
-                    throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $cnAmount));
-                }
-                if ($un >= 0) {
-                    $amount = gmp_add($amount, gmp_mul($key, $un < 0 ? 10 ** $un : gmp_pow('10', $un)));
-                } else {
-                    $decimal += $key * (10 ** $un);
-                }
-                $un = null;
-            } elseif (($key = array_search($chr, self::UNIT)) !== false) {
-                if (!is_null($un) && $un != 0) {
-                    throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $cnAmount));
-                }
-                $un = $key;
+                array_push($digits, $key);
+                $isDigit = true;
+            } elseif (($un = array_search($chr, self::UNIT)) !== false) {
                 $maxUnit = max($maxUnit, $un);
-                $un = $maxUnit > $un ? $maxUnit + $un : $un;
-            } elseif ($chr == self::SYMBOL['-']) {
-                $plus = -1;
+                $isDigit && array_push($units, $maxUnit > $un ? $maxUnit + $un : $un);
+                $isDigit = false;
             } else {
                 throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $cnAmount));
             }
         }
-        return $prefix . gmp_strval(gmp_mul($amount, $plus)) . ltrim(strval($decimal), '0');
+        if (!empty($amounts) || count($digits) != count($units)) {
+            throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $cnAmount));
+        }
+        return $prefix . self::calculate($digits, $units, $isPlus);
+    }
+
+    /**
+     * 转换成数字计算
+     *
+     * @param $digits
+     * @param $units
+     * @param int $isPlus
+     * @return string
+     */
+    private static function calculate($digits, $units, $isPlus = 1): string
+    {
+        $integer = $decimal = 0;
+        while (($digit = array_pop($digits)) && ($unit = array_pop($units))) {
+            if ($units >= 0) {
+                $integer = gmp_add($integer, gmp_mul($digit, gmp_pow(10, $unit)));
+            } else {
+                $decimal += $digit * (10 ** $unit);
+            }
+        }
+        return gmp_strval(gmp_mul($integer, $isPlus)) . ltrim(strval($decimal), '0');
     }
 }

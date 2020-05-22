@@ -56,7 +56,8 @@ final class Convert
     private const SYMBOL = [
         '-' => '负',
         '+' => '',
-        '' => '整'
+        '' => '整',
+        ',' => ''
     ];
 
     /**
@@ -74,10 +75,6 @@ final class Convert
         $unit = 0;
         while ($i) {
             $num = $integer[$len - $i--];
-            if (in_array($num, array_keys(self::SYMBOL), true)) {
-                $integerStr .= self::SYMBOL[$num];
-                continue;
-            }
             if ($num > 0 || Arr::exists(self::UNIT, $i) && $unit <= $i) {
                 $integerStr .= $num > 0 || $i == 0 ? self::DIGITAL[$num] : '';
                 $unit = Arr::exists(self::UNIT, $i) ? $i : $i % 4;
@@ -90,14 +87,14 @@ final class Convert
     /**
      * 小数部分转换
      *
-     * @param string $decimals
+     * @param string|null $decimals
      * @param string|null $default
      * @return string|null
      */
-    private static function decimalToCn(string $decimals, ?string $default = null): ?string
+    private static function decimalToCn(?string $decimals, ?string $default = null): ?string
     {
         $decimalStr = '';
-        $len = strlen($decimals);
+        $len = is_string($decimals) ? strlen($decimals) : 0;
         for ($i = 0; $i < $len; $i++) {
             $num = $decimals[$i];
             if ($num > 0) {
@@ -105,6 +102,20 @@ final class Convert
             }
         }
         return empty($decimalStr) ? $default : $decimalStr;
+    }
+
+    /**
+     * 获取金额大写前缀
+     *
+     * @param string $amount
+     * @param string $cnPrefix
+     * @return string
+     */
+    private static function getCnPrefix(string &$amount, string $cnPrefix): string
+    {
+        $cnPrefix .= Arr::get(self::SYMBOL, $amount[0], '');
+        $amount = preg_replace(sprintf('/[%s]/', implode(array_keys(self::SYMBOL))), '', $amount);
+        return $cnPrefix;
     }
 
 
@@ -118,11 +129,13 @@ final class Convert
      */
     public static function toCn($amount, $prefix = '￥', string $cnPrefix = '人民币'): string
     {
+        $amount = strval($amount);
         if (!preg_match(sprintf('/^(%s)?[+\-]?([1-9]\d{0,2}([,]?\d{3})*|0)(\.\d{0,4})?$/', $prefix), $amount)) {
             throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $amount));
         }
-        $amount = strtr($amount, [',' => '', $prefix => '']);
-        list($integer, $decimals) = explode('.', strval($amount) . '.', 2);
+        $amount = preg_replace(sprintf('/^%s/', $prefix), '', $amount);
+        $cnPrefix = self::getCnPrefix($amount, $cnPrefix);
+        list($integer, $decimals) = explode('.', $amount . '.', 2);
         return $cnPrefix . self::integerToCn($integer) . strval(self::decimalToCn($decimals, self::SYMBOL['']));
     }
 

@@ -12,9 +12,10 @@
 
 namespace MuCTS\Money\Chinese;
 
+use Illuminate\Support\Arr;
 use MuCTS\Money\Exceptions\InvalidArgumentException;
 
-class Convert
+final class Convert
 {
     private const DIGITAL = [
         0 => '零',
@@ -63,51 +64,33 @@ class Convert
      * 金额转换成中文
      *
      * @param string|int|float $amount
-     * @param string $symbol
-     * @param string $cnSymbol
+     * @param string $prefix
+     * @param string $cnPrefix
      * @return string
      */
-    public static function toCn($amount, string $symbol = '￥', string $cnSymbol = '人民币'): string
+    public static function toCn($amount, $prefix = '￥', string $cnPrefix = '人民币'): string
     {
-        $amount = ltrim($amount, $symbol);
-        if (!preg_match('/^[+\-]?([1-9][0-9]{0,2}([,]?[0-9]{3})*|0)(\.[0-9]{0,4})?$/', $amount)) {
+        if (!preg_match(sprintf('/^(%s)?[+\-]?([1-9]\d{0,2}([,]?\d{3})*|0)(\.\d{0,4})?$/', $prefix), $amount)) {
             throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $amount));
         }
+        $amount = strtr($amount, [',' => '', $prefix => '']);
         list($integer, $decimals) = explode('.', strval($amount) . '.', 2);
-        $integer = strtr($integer, [',' => '']);
         if (($len = strlen($integer)) > 48) {
             throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $amount));
         }
         $integerStr = '';
         $i = $len;
+        $unit = 0;
         while ($i) {
             $num = $integer[$len - $i--];
             if (in_array($num, array_keys(self::SYMBOL), true)) {
                 $integerStr .= self::SYMBOL[$num];
                 continue;
             }
-            if ($num > 0) {
-                $integerStr .= self::DIGITAL[$num];
-                if (isset(self::UNIT[$i])) {
-                    $integerStr .= self::UNIT[$i];
-                } else {
-                    $integerStr .= self::UNIT[$i % 4];
-                    while ($i) {
-                        $num = $integer[$len - $i--];
-                        if ($num > 0) {
-                            $integerStr .= self::DIGITAL[$num];
-                            if (isset(self::UNIT[$i])) {
-                                $integerStr .= self::UNIT[$i];
-                                break;
-                            } else {
-                                $integerStr .= self::UNIT[$i % 4];
-                            }
-                        } elseif (isset(self::UNIT[$i])) {
-                            $integerStr .= self::UNIT[$i];
-                            break;
-                        }
-                    }
-                }
+            if ($num > 0 || Arr::exists(self::UNIT, $i) && $unit <= $i) {
+                $integerStr .= $num > 0 || $i == 0 ? self::DIGITAL[$num] : '';
+                $unit = Arr::exists(self::UNIT, $i) ? $i : $i % 4;
+                $integerStr .= self::UNIT[$unit];
             }
         }
         $decimalStr = '';
@@ -118,26 +101,26 @@ class Convert
                 $decimalStr .= self::DIGITAL[$num] . self::UNIT[-1 - $i];
             }
         }
-        $integerStr = $integerStr != '' ? $integerStr : self::DIGITAL[0];
         $integerStr = strpos($integerStr, self::UNIT[0]) ? $integerStr : $integerStr . self::UNIT[0];
-        return $cnSymbol . $integerStr . ($decimalStr != '' ? $decimalStr : self::SYMBOL['']);
+        return $cnPrefix . $integerStr . ($decimalStr != '' ? $decimalStr : self::SYMBOL['']);
     }
 
     /**
      * 中文金额转阿拉伯数字金额
      *
      * @param string $cnAmount
-     * @param string $unit
-     * @param string $cnUnit
+     * @param string $prefix
+     * @param string $cnPrefix
      * @return string
      */
-    public static function toDigit(string $cnAmount, $unit = '￥', $cnUnit = '人民币'): string
+    public static function toDigit(string $cnAmount, string $prefix = '￥', string $cnPrefix = '人民币'): string
     {
-        $amount = preg_replace("/^{$cnUnit}/", '', $cnAmount);
+        $amount = preg_replace("/^{$cnPrefix}/", '', $cnAmount);
         $amount = preg_replace('/' . self::UNIT[0] . self::SYMBOL[''] . '$/', self::UNIT[0], $amount);
         $amounts = mb_str_split($amount);
         $amount = $maxUnit = 0;
-        $symbol = 1;
+        // 断定是否是正数，默认是
+        $plus = 1;
         $decimal = 0;
         $un = null;
         while ($chr = array_pop($amounts)) {
@@ -159,11 +142,11 @@ class Convert
                 $maxUnit = max($maxUnit, $un);
                 $un = $maxUnit > $un ? $maxUnit + $un : $un;
             } elseif ($chr == self::SYMBOL['-']) {
-                $symbol = -1;
+                $plus = -1;
             } else {
                 throw new InvalidArgumentException(sprintf('%s is not a valid chinese number text', $cnAmount));
             }
         }
-        return $unit . gmp_strval(gmp_mul($amount, $symbol)) . ltrim(strval($decimal), '0');
+        return $prefix . gmp_strval(gmp_mul($amount, $plus)) . ltrim(strval($decimal), '0');
     }
 }

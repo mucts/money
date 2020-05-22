@@ -17,13 +17,13 @@ if (!function_exists('amount_to_cn')) {
      * 金额转换成中文
      *
      * @param string|int|float $amount
-     * @param string $symbol
-     * @param string $cnSymbol
+     * @param string $prefix
+     * @param string $cnPrefix
      * @return string
      */
-    function amount_to_cn($amount, string $symbol = '￥', string $cnSymbol = '人民币')
+    function amount_to_cn($amount, string $prefix = '￥', string $cnPrefix = '人民币')
     {
-        return Convert::toCn($amount, $symbol, $cnSymbol);
+        return Convert::toCn($amount, $prefix, $cnPrefix);
     }
 }
 
@@ -32,12 +32,12 @@ if (!function_exists('amount_to_digit')) {
      * 金额转换成阿拉伯数字
      *
      * @param string|int|float $amount
-     * @param string $symbol
-     * @param string $cnSymbol
+     * @param string $prefix
+     * @param string $cnPrefix
      * @return string
      */
-    function amount_to_digit($amount, string $symbol = '￥', string $cnSymbol = '人民币')
+    function amount_to_digit($amount, string $prefix = '￥', string $cnPrefix = '人民币')
     {
-        return Convert::toDigit($amount, $symbol, $cnSymbol);
+        return Convert::toDigit($amount, $prefix, $cnPrefix);
     }
 }

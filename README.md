@@ -1,13 +1,15 @@
+<p align="center"><img src="https://www.herry.me/image/mcts.png" width="400"></p>
+<p align="center">
+    <a href="https://scrutinizer-ci.com/g/mucts/money"><img src="https://scrutinizer-ci.com/g/mucts/money/badges/build.png" alt="Build Status"></a>
+    <a href="https://scrutinizer-ci.com/g/mucts/money"><img src="https://scrutinizer-ci.com/g/mucts/money/badges/code-intelligence.svg" alt="Code Intelligence Status"></a>
+    <a href="https://scrutinizer-ci.com/g/mucts/money"><img src="https://scrutinizer-ci.com/g/mucts/money/badges/quality-score.png" alt="Scrutinizer Code Quality"></a>
+    <a href="https://packagist.org/packages/mucts/money"><img src="https://poser.pugx.org/mucts/money/d/total.svg" alt="Total Downloads"></a>
+    <a href="https://packagist.org/packages/mucts/money"><img src="https://poser.pugx.org/mucts/money/v/stable.svg" alt="Latest Stable Version"></a>
+    <a href="https://packagist.org/packages/mucts/money"><img src="https://poser.pugx.org/mucts/money/license.svg" alt="License"></a>
+</p>
+
 # Money
 > Numeric amount case conversion.
-
-[![Build Status](https://scrutinizer-ci.com/g/mucts/money/badges/build.png)](https://scrutinizer-ci.com/g/mucts/money)
-[![Code Intelligence Status](https://scrutinizer-ci.com/g/mucts/money/badges/code-intelligence.svg)](https://scrutinizer-ci.com/g/mucts/money)
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/mucts/money/badges/quality-score.png)](https://scrutinizer-ci.com/g/mucts/money)
-[![Latest Stable Version](https://poser.pugx.org/mucts/money/v/stable.svg)](https://packagist.org/packages/mucts/money) 
-[![Total Downloads](https://poser.pugx.org/mucts/money/downloads.svg)](https://packagist.org/packages/mucts/money) 
-[![Latest Unstable Version](https://poser.pugx.org/mucts/money/v/unstable.svg)](https://packagist.org/packages/mucts/money) 
-[![License](https://poser.pugx.org/mucts/money/license.svg)](https://packagist.org/packages/mucts/money)
 
 ## Installation
 
